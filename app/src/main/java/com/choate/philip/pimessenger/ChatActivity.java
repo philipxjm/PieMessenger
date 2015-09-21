@@ -51,7 +51,7 @@ public class ChatActivity extends AppCompatActivity
         // update the main content by replacing fragments
         FragmentManager fragmentManager = getSupportFragmentManager();
         fragmentManager.beginTransaction()
-                .replace(R.id.container, PlaceholderFragment.newInstance(position + 1))
+                .replace(R.id.content_frame, PlaceholderFragment.newInstance(position + 1))
                 .commit();
     }
 
