@@ -16,24 +16,24 @@
         android:layout_alignParentStart="true"
         android:layout_alignParentEnd="true"
         android:layout_centerHorizontal="true"
-        android:layout_above="@id/messageBox"
+        android:layout_above="@+id/messageBox"
         android:autoLink="all"
         android:background="@drawable/textlines"/>
 
     <EditText
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/messageBox"
+        android:id="@id/messageBox"
         android:layout_alignParentBottom="true"
         android:layout_alignParentStart="true"
-        android:layout_toStartOf="@id/button" />
+        android:layout_toStartOf="@+id/button" />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/button_send"
-        android:id="@+id/button"
-        android:layout_alignTop="@+id/messageBox"
+        android:id="@id/button"
+        android:layout_alignTop="@id/messageBox"
         android:layout_alignParentEnd="true" />
 
 </RelativeLayout>
