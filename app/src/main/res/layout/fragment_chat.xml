@@ -1,4 +1,4 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
     android:layout_height="match_parent" android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
@@ -8,24 +8,32 @@
 
     <EditText
         android:layout_width="wrap_content"
-        android:layout_height="384dp"
+        android:layout_height="wrap_content"
         android:inputType="textMultiLine"
         android:ems="10"
         android:id="@+id/messageHistory"
-        android:layout_gravity="center_horizontal" />
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentEnd="true"
+        android:layout_centerHorizontal="true"
+        android:layout_above="@id/messageBox"
+        android:autoLink="all"
+        android:background="@drawable/textlines"/>
 
     <EditText
-        android:layout_width="fill_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/messageBox"
-        android:layout_gravity="bottom|center"
-        android:layout_weight="1" />
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"
+        android:layout_toStartOf="@id/button" />
 
     <Button
-        style="?android:attr/buttonStyleSmall"
-        android:layout_width="95dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/button_send"
-        android:id="@+id/sendButton"
-        android:layout_gravity="bottom|right" />
-</LinearLayout>
+        android:id="@+id/button"
+        android:layout_alignTop="@+id/messageBox"
+        android:layout_alignParentEnd="true" />
+
+</RelativeLayout>
