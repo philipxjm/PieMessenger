@@ -16,6 +16,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.support.v4.widget.DrawerLayout;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 public class ChatActivity extends AppCompatActivity
@@ -31,6 +33,11 @@ public class ChatActivity extends AppCompatActivity
      */
     private CharSequence mTitle;
 
+
+    private Button mSendButton;
+    private EditText mMessageHistory;
+    private EditText mMessageField;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -44,6 +51,16 @@ public class ChatActivity extends AppCompatActivity
         mNavigationDrawerFragment.setUp(
                 R.id.navigation_drawer,
                 (DrawerLayout) findViewById(R.id.drawer_layout));
+
+        mMessageHistory = (EditText) findViewById(R.id.messageHistory);
+        mMessageField = (EditText) findViewById(R.id.messageBox);
+        mSendButton = (Button) findViewById(R.id.button);
+        mSendButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                sendText(mMessageField.getText().toString());
+            }
+        });
     }
 
     @Override
@@ -103,6 +120,11 @@ public class ChatActivity extends AppCompatActivity
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    public void sendText(String messageText) {
+        // TODO: Connect to database for messages
+        mMessageHistory.setText(mMessageHistory.getText() + "/n" + messageText);
     }
 
     /**
