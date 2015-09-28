@@ -34,9 +34,9 @@ public class ChatActivity extends AppCompatActivity
     private CharSequence mTitle;
 
 
-    private Button mSendButton;
-    private EditText mMessageHistory;
-    private EditText mMessageField;
+    //private Button mSendButton;
+    //private EditText mMessageHistory;
+    //private EditText mMessageField;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,15 +52,9 @@ public class ChatActivity extends AppCompatActivity
                 R.id.navigation_drawer,
                 (DrawerLayout) findViewById(R.id.drawer_layout));
 
-        mMessageHistory = (EditText) findViewById(R.id.messageHistory);
-        mMessageField = (EditText) findViewById(R.id.messageBox);
-        mSendButton = (Button) findViewById(R.id.button);
-        mSendButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                sendText(mMessageField.getText().toString());
-            }
-        });
+        //mMessageHistory = (EditText) findViewById(R.id.messageHistory);
+        //mMessageField = (EditText) findViewById(R.id.messageBox);
+        //mSendButton = (Button) findViewById(R.id.button);
     }
 
     @Override
@@ -122,11 +116,6 @@ public class ChatActivity extends AppCompatActivity
         return super.onOptionsItemSelected(item);
     }
 
-    public void sendText(String messageText) {
-        // TODO: Connect to database for messages
-        mMessageHistory.setText(mMessageHistory.getText() + "/n" + messageText);
-    }
-
     /**
      * A placeholder fragment containing a simple view.
      */
@@ -136,6 +125,10 @@ public class ChatActivity extends AppCompatActivity
          * fragment.
          */
         private static final String ARG_SECTION_NUMBER = "section_number";
+
+        private Button mSendButton;
+        private EditText mTextHistory;
+        private EditText mTextBox;
 
         /**
          * Returns a new instance of this fragment for the given section
@@ -156,6 +149,20 @@ public class ChatActivity extends AppCompatActivity
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
             View rootView = inflater.inflate(R.layout.fragment_chat, container, false);
+
+            mSendButton = (Button) rootView.findViewById(R.id.button);
+            mTextBox = (EditText) rootView.findViewById(R.id.messageBox);
+            mTextHistory = (EditText) rootView.findViewById(R.id.messageHistory);
+
+            mSendButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    // TODO: Interface with database for message history
+                    mTextHistory.setText(mTextHistory.getText().toString() + "\n" + mTextBox.getText());
+                    mTextBox.setText("");
+                }
+            });
+
             return rootView;
         }
 
@@ -165,6 +172,8 @@ public class ChatActivity extends AppCompatActivity
             ((ChatActivity) activity).onSectionAttached(
                     getArguments().getInt(ARG_SECTION_NUMBER));
         }
-    }
+
+        }
+
 
 }
