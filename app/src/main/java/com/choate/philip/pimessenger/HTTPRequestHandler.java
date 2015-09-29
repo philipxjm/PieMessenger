@@ -2,8 +2,11 @@ package com.choate.philip.pimessenger;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLStreamHandler;
+
 import org.json.simple.JSONObject;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -24,13 +27,16 @@ public class HTTPRequestHandler {
     private void sendPost() throws Exception {
 
         String url = "http://piemessengerbackend.herokuapp.com/users/register";
-        URL obj = new URL(null, url, new sun.net.www.protocol.https.Handler());
+        URLStreamHandler handler = getURLStreamHandler("http");
+        URL obj = new URL(null, url, handler);
         HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
 
         //add reuqest header
+        con.setDoOutput(true);
+        con.setDoInput(true);
+        con.setRequestProperty("Content-Type", "application/json");
+        con.setRequestProperty("Accept", "application/json");
         con.setRequestMethod("POST");
-        con.setRequestProperty("User-Agent", USER_AGENT);
-        con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
 
 
         // Send post request
@@ -56,5 +62,15 @@ public class HTTPRequestHandler {
         //print result
         System.out.println(response.toString());
 
+    }
+
+    public static URLStreamHandler getURLStreamHandler(String protocol) {
+        try {
+            Method method = URL.class.getDeclaredMethod("getURLStreamHandler", String.class);
+            method.setAccessible(true);
+            return (URLStreamHandler) method.invoke(null, protocol);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
