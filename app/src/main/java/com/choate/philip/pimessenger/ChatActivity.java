@@ -52,6 +52,8 @@ public class ChatActivity extends AppCompatActivity
                 R.id.navigation_drawer,
                 (DrawerLayout) findViewById(R.id.drawer_layout));
 
+
+
         //mMessageHistory = (EditText) findViewById(R.id.messageHistory);
         //mMessageField = (EditText) findViewById(R.id.messageBox);
         //mSendButton = (Button) findViewById(R.id.button);

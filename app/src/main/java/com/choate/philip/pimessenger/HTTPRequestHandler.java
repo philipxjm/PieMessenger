@@ -2,6 +2,7 @@ package com.choate.philip.pimessenger;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -14,8 +15,6 @@ import javax.net.ssl.HttpsURLConnection;
  * Created by Philip on 9/28/2015.
  */
 public class HTTPRequestHandler {
-    private final String USER_AGENT = "Mozilla/5.0";
-
     public static void main(String[] args) throws Exception {
 
         HTTPRequestHandler http = new HTTPRequestHandler();
@@ -26,10 +25,10 @@ public class HTTPRequestHandler {
     // HTTP POST request
     private void sendPost() throws Exception {
 
-        String url = "http://piemessengerbackend.herokuapp.com/users/register";
+        String url = "http://piemessengerbackend.herokuapp.com/users/login";
         URLStreamHandler handler = getURLStreamHandler("http");
-        URL obj = new URL(null, url, handler);
-        HttpsURLConnection con = (HttpsURLConnection) obj.openConnection();
+        URL obj=new URL(url);
+        HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 
         //add reuqest header
         con.setDoOutput(true);
@@ -38,30 +37,32 @@ public class HTTPRequestHandler {
         con.setRequestProperty("Accept", "application/json");
         con.setRequestMethod("POST");
 
+        JSONObject cred = new JSONObject();
+        cred.put("name", "ian");
+        //cred.put("email", "ian@thing.com");
+        cred.put("password", "ian");
 
         // Send post request
-        con.setDoOutput(true);
-        DataOutputStream wr = new DataOutputStream(con.getOutputStream());
+        OutputStreamWriter wr = new OutputStreamWriter(con.getOutputStream());
+        wr.write(cred.toString());
         wr.flush();
-        wr.close();
 
-        int responseCode = con.getResponseCode();
-        System.out.println("\nSending 'POST' request to URL : " + url);
-        System.out.println("Response Code : " + responseCode);
+        StringBuilder sb = new StringBuilder();
+        int HttpResult = con.getResponseCode();
+        if(HttpResult == HttpURLConnection.HTTP_OK){
+            BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(),"utf-8"));
+            String line = null;
+            while ((line = br.readLine()) != null) {
+                sb.append(line + "\n");
+            }
 
-        BufferedReader in = new BufferedReader(
-                new InputStreamReader(con.getInputStream()));
-        String inputLine;
-        StringBuffer response = new StringBuffer();
+            br.close();
 
-        while ((inputLine = in.readLine()) != null) {
-            response.append(inputLine);
+            System.out.println(""+sb.toString());
+
+        }else{
+            System.out.println(con.getResponseMessage());
         }
-        in.close();
-
-        //print result
-        System.out.println(response.toString());
-
     }
 
     public static URLStreamHandler getURLStreamHandler(String protocol) {
