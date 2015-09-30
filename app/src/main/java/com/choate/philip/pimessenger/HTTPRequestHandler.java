@@ -19,14 +19,15 @@ public class HTTPRequestHandler {
 
         HTTPRequestHandler http = new HTTPRequestHandler();
         System.out.println("\nTesting - Send Http POST request");
-        http.sendPost();
+        JSONObject cred = new JSONObject();
+        cred.put("name", "ian");
+        cred.put("email", "ian@thing.com");
+        cred.put("password", "ian");
+        http.sendPost("http://piemessengerbackend.herokuapp.com/users/login", cred);
 
     }
     // HTTP POST request
-    private void sendPost() throws Exception {
-
-        String url = "http://piemessengerbackend.herokuapp.com/users/login";
-        URLStreamHandler handler = getURLStreamHandler("http");
+    private void sendPost(String url, JSONObject postObj) throws Exception {
         URL obj=new URL(url);
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 
@@ -37,14 +38,9 @@ public class HTTPRequestHandler {
         con.setRequestProperty("Accept", "application/json");
         con.setRequestMethod("POST");
 
-        JSONObject cred = new JSONObject();
-        cred.put("name", "ian");
-        //cred.put("email", "ian@thing.com");
-        cred.put("password", "ian");
-
         // Send post request
         OutputStreamWriter wr = new OutputStreamWriter(con.getOutputStream());
-        wr.write(cred.toString());
+        wr.write(postObj.toString());
         wr.flush();
 
         StringBuilder sb = new StringBuilder();
