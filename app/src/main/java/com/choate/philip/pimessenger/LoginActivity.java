@@ -6,6 +6,7 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.LoaderManager.LoaderCallbacks;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.CursorLoader;
 import android.content.Intent;
 import android.content.Loader;
@@ -26,26 +27,24 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A login screen that offers login via email/password.
  */
 public class LoginActivity extends Activity {
-
-    /**
-     * A dummy authentication store containing known user names and passwords.
-     * TODO: remove after connecting to a real authentication system.
-     */
-    private static final String[] DUMMY_CREDENTIALS = new String[]{
-            "foo@example.com:hello", "bar@example.com:world"
-    };
     /**
      * Keep track of the login task to ensure we can cancel it if requested.
      */
     private UserLoginTask mAuthTask = null;
+    private UserRegisterTask mRegisterTask = null;
 
     // UI references.
     private EditText mUserView;
@@ -97,7 +96,46 @@ public class LoginActivity extends Activity {
     }
 
     private void attemptRegister() {
+        // Reset errors.
+        mUserView.setError(null);
+        mPasswordView.setError(null);
 
+        // Store values at the time of the login attempt.
+        String user = mUserView.getText().toString();
+        String password = mPasswordView.getText().toString();
+
+        boolean cancel = false;
+        View focusView = null;
+
+        // Check for a valid password, if the user entered one.
+        if (!TextUtils.isEmpty(password) && !isPasswordValid(password)) {
+            mPasswordView.setError(getString(R.string.error_invalid_password));
+            focusView = mPasswordView;
+            cancel = true;
+        }
+
+        // Check for a valid username.
+        if (TextUtils.isEmpty(user)) {
+            mUserView.setError(getString(R.string.error_field_required));
+            focusView = mUserView;
+            cancel = true;
+        } else if (!isUserValid(user)) {
+            mUserView.setError(getString(R.string.error_invalid_user));
+            focusView = mUserView;
+            cancel = true;
+        }
+
+        if (cancel) {
+            // There was an error; don't attempt login and focus the first
+            // form field with an error.
+            focusView.requestFocus();
+        } else {
+            // Show a progress spinner, and kick off a background task to
+            // perform the user login attempt.
+            showProgress(true);
+            mRegisterTask = new UserRegisterTask(user, password);
+            mRegisterTask.execute("http://piemessengerbackend.herokuapp.com/users/register");
+        }
     }
 
 
@@ -116,7 +154,7 @@ public class LoginActivity extends Activity {
         mPasswordView.setError(null);
 
         // Store values at the time of the login attempt.
-        String email = mUserView.getText().toString();
+        String user = mUserView.getText().toString();
         String password = mPasswordView.getText().toString();
 
         boolean cancel = false;
@@ -130,11 +168,11 @@ public class LoginActivity extends Activity {
         }
 
         // Check for a valid username.
-        if (TextUtils.isEmpty(email)) {
+        if (TextUtils.isEmpty(user)) {
             mUserView.setError(getString(R.string.error_field_required));
             focusView = mUserView;
             cancel = true;
-        } else if (!isUserValid(email)) {
+        } else if (!isUserValid(user)) {
             mUserView.setError(getString(R.string.error_invalid_user));
             focusView = mUserView;
             cancel = true;
@@ -148,8 +186,8 @@ public class LoginActivity extends Activity {
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
             showProgress(true);
-            mAuthTask = new UserLoginTask(email, password);
-            mAuthTask.execute((Void) null);
+            mAuthTask = new UserLoginTask(user, password);
+            mAuthTask.execute("http://piemessengerbackend.herokuapp.com/users/login");
         }
     }
 
@@ -199,42 +237,52 @@ public class LoginActivity extends Activity {
             mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
         }
     }
-
     /**
      * Represents an asynchronous login/registration task used to authenticate
      * the user.
      */
-    public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
+    public class UserLoginTask extends AsyncTask<String, Void, Boolean> {
+        JSONObject cred = new JSONObject();
 
-        private final String mEmail;
-        private final String mPassword;
-
-        UserLoginTask(String email, String password) {
-            mEmail = email;
-            mPassword = password;
+        UserLoginTask(String user, String password) {
+            cred = new JSONObject();
+            try {
+                cred.put("name", user);
+                cred.put("password", password);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
         }
 
         @Override
-        protected Boolean doInBackground(Void... params) {
-            // TODO: attempt authentication against a network service.
-
+        protected Boolean doInBackground(String... params) {
+            JSONObject returnObj = null;
             try {
-                // Simulate network access.
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
+                HTTPRequestHandler http = new HTTPRequestHandler();
+                System.out.println("\nSending Http POST request to: " + params[0]);
+                try {
+                    returnObj = http.getJSONFromUrl((String) params[0], cred);
+                    System.out.println("JSON Object: " + returnObj.toString());
+                } catch (Exception e) {
+                    returnObj = new JSONObject("{\"permission\" : \"false\"}");
+                    e.printStackTrace();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                if(returnObj != null){
+                    if(returnObj.getBoolean("permission")){
+                        return true;
+                    }
+                } else {
+                    return false;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
                 return false;
             }
-
-            for (String credential : DUMMY_CREDENTIALS) {
-                String[] pieces = credential.split(":");
-                if (pieces[0].equals(mEmail)) {
-                    // Account exists, return true if the password matches.
-                    return pieces[1].equals(mPassword);
-                }
-            }
-
-            // TODO: register the new account here.
-            return true;
+            return false;
         }
 
         @Override
@@ -250,6 +298,77 @@ public class LoginActivity extends Activity {
             } else {
                 mPasswordView.setError(getString(R.string.error_incorrect_password));
                 mPasswordView.requestFocus();
+            }
+        }
+
+        @Override
+        protected void onCancelled() {
+            mAuthTask = null;
+            showProgress(false);
+        }
+    }
+
+    public class UserRegisterTask extends AsyncTask<String, Void, Boolean> {
+        JSONObject cred = new JSONObject();
+
+        UserRegisterTask(String user, String password) {
+            cred = new JSONObject();
+            try {
+                cred.put("name", user);
+                cred.put("password", password);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        protected Boolean doInBackground(String... params) {
+            JSONObject returnObj = null;
+            try {
+                HTTPRequestHandler http = new HTTPRequestHandler();
+                System.out.println("\nSending Http POST request to: " + params[0]);
+                try {
+                    returnObj = http.getJSONFromUrl((String) params[0], cred);
+                    System.out.println("JSON Object: " + returnObj.toString());
+                } catch (Exception e) {
+                    returnObj = new JSONObject("{\"registered\" : \"true\"}");
+                    e.printStackTrace();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                if(returnObj != null){
+                    if(!returnObj.getBoolean("registered")){
+                        return true;
+                    }
+                } else {
+                    return false;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            }
+            return false;
+        }
+
+        @Override
+        protected void onPostExecute(final Boolean success) {
+            mAuthTask = null;
+            showProgress(false);
+
+            if (success) {
+                showProgress(false);
+                Context context = getApplicationContext();
+                CharSequence text = "Registered!";
+                int duration = Toast.LENGTH_SHORT;
+
+                Toast toast = Toast.makeText(context, text, duration);
+                toast.show();
+
+            } else {
+                mUserView.setError(getString(R.string.error_already_registered));
+                mUserView.requestFocus();
             }
         }
 
