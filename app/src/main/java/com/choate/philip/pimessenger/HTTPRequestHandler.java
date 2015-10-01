@@ -7,8 +7,11 @@ import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLStreamHandler;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-import org.json.simple.JSONObject;
+//import org.json.simple.JSONObject;
 
 import javax.net.ssl.HttpsURLConnection;
 /**
@@ -20,10 +23,10 @@ public class HTTPRequestHandler {
         HTTPRequestHandler http = new HTTPRequestHandler();
         System.out.println("\nTesting - Send Http POST request");
         JSONObject cred = new JSONObject();
-        cred.put("name", "ian");
-        cred.put("email", "ian@thing.com");
-        cred.put("password", "ian");
-        http.sendPost("http://piemessengerbackend.herokuapp.com/users/login", cred);
+        cred.put("name", "ian2");
+        cred.put("email", "ian2@thing.com");
+        cred.put("password", "ian2");
+        http.sendPost("http://piemessengerbackend.herokuapp.com/users/register", cred);
 
     }
     // HTTP POST request
@@ -49,12 +52,14 @@ public class HTTPRequestHandler {
             BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(),"utf-8"));
             String line = null;
             while ((line = br.readLine()) != null) {
-                sb.append(line + "\n");
+                System.out.println(line);
+                sb.append("\"" + line + "\"");
             }
 
             br.close();
-
-            System.out.println(""+sb.toString());
+            String jsonString = sb.toString();
+            JSONObject js = new JSONObject("{\"success\":false, \"errorMessage\":\"Application with appId : [randomAppId] not registered\", \"errorCode\":102}");
+            System.out.println(sb.toString());
 
         }else{
             System.out.println(con.getResponseMessage());
