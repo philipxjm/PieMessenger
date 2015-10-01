@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">PiMessenger</string>
+    <string name="app_name">Pi Messenger</string>
     <string name="title_activity_chat">ChatActivity</string>
 
     <string name="title_section1">Section 1</string>

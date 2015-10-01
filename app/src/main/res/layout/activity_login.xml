@@ -9,6 +9,12 @@
     android:weightSum="1">
 
     <!-- Login progress -->
+
+    <ProgressBar android:id="@+id/login_progress" style="?android:attr/progressBarStyleLarge"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp" android:visibility="gone" />
+
+
     <ImageView
         android:layout_width="156dp"
         android:layout_height="195dp"
@@ -21,17 +27,12 @@
         android:maxWidth="200dp"
         android:layout_weight="0.04" />
 
-    <ProgressBar android:id="@+id/login_progress" style="?android:attr/progressBarStyleLarge"
-        android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp" android:visibility="gone" />
-
-
         <LinearLayout android:id="@+id/login_form" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:orientation="vertical">
 
-            <AutoCompleteTextView android:id="@+id/user" android:layout_width="match_parent"
+            <EditText android:id="@+id/user" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:hint="@string/prompt_user"
-                android:inputType="textEmailAddress" android:maxLines="1"
+                android:inputType="text" android:maxLines="1"
                 android:singleLine="true" />
 
             <EditText android:id="@+id/password" android:layout_width="match_parent"
