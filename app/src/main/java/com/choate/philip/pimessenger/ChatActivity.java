@@ -20,6 +20,8 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import org.json.JSONObject;
+
 public class ChatActivity extends AppCompatActivity
         implements NavigationDrawerFragment.NavigationDrawerCallbacks {
 
@@ -57,6 +59,28 @@ public class ChatActivity extends AppCompatActivity
         //mMessageHistory = (EditText) findViewById(R.id.messageHistory);
         //mMessageField = (EditText) findViewById(R.id.messageBox);
         //mSendButton = (Button) findViewById(R.id.button);
+        Thread thread = new Thread(new Runnable(){
+            @Override
+            public void run() {
+                try {
+                    HTTPRequestHandler http = new HTTPRequestHandler();
+                    System.out.println("\nTesting - Send Http POST request");
+                    try {
+                        JSONObject cred = new JSONObject();
+                        cred.put("name", "ian2");
+                        cred.put("email", "ian2@thing.com");
+                        cred.put("password", "ian2");
+                        System.out.println("JSON Object: " + http.getJSONFromUrl("http://piemessengerbackend.herokuapp.com/users/login", cred).toString());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        thread.start();
     }
 
     @Override
