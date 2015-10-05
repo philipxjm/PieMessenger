@@ -2,6 +2,7 @@ package com.choate.philip.pimessenger;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.ActionBar;
 import android.support.v4.app.Fragment;
@@ -39,8 +40,10 @@ public class ChatActivity extends AppCompatActivity
      * Used to store the last screen title. For use in {@link #restoreActionBar()}.
      */
     private CharSequence mTitle;
+    private MessageGetTask mGetMessageTask;
     public static String userData;
     public static String userName;
+    private ArrayList<String> users;
 
     //private Button mSendButton;
     //private EditText mMessageHistory;
@@ -80,10 +83,25 @@ public class ChatActivity extends AppCompatActivity
     @Override
     public void onNavigationDrawerItemSelected(int position) {
         // update the main content by replacing fragments
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        fragmentManager.beginTransaction()
-                .replace(R.id.content_frame, PlaceholderFragment.newInstance(position + 1))
-                .commit();
+        try {
+            JSONArray userData = new JSONArray(ChatActivity.userData);
+            users = new ArrayList<>();
+            for (int i = 0; i < userData.length(); i++) {
+                try {
+                    if(userData.get(i) instanceof JSONObject) {
+                        if(!(((JSONObject) userData.get(i)).getString("name").equals(ChatActivity.userName))){
+                            users.add(((JSONObject) userData.get(i)).getString("name"));
+                        }
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        mGetMessageTask = new MessageGetTask(userName, users.get(position), position);
+        mGetMessageTask.execute("http://piemessengerbackend.herokuapp.com/messages/pull");
     }
 
     public void onSectionAttached(int number) {
@@ -138,10 +156,11 @@ public class ChatActivity extends AppCompatActivity
          * Returns a new instance of this fragment for the given section
          * number.
          */
-        public static PlaceholderFragment newInstance(int sectionNumber) {
+        public static PlaceholderFragment newInstance(int sectionNumber, String userName) {
             PlaceholderFragment fragment = new PlaceholderFragment();
             Bundle args = new Bundle();
             args.putInt(ARG_SECTION_NUMBER, sectionNumber);
+            args.putString("USERNAME", userName);
             fragment.setArguments(args);
             return fragment;
         }
@@ -175,6 +194,92 @@ public class ChatActivity extends AppCompatActivity
             super.onAttach(context);
             ((ChatActivity) context).onSectionAttached(
                     getArguments().getInt(ARG_SECTION_NUMBER));
+        }
+
+        public void addText(String text) {
+            if(mTextHistory != null) {
+                System.out.println("mTextHistory is null");
+                mTextHistory.setText(mTextHistory.getText().toString() + "\n" + text);
+            } else {
+                //mTextHistory.setText(mTextHistory.getText().toString() + "\n" + text);
+            }
+        }
+    }
+
+    public class MessageGetTask extends AsyncTask<String, Void, Boolean> {
+        JSONObject cred = new JSONObject();
+        JSONObject returnObj;
+        String from, to;
+        int pos;
+
+        MessageGetTask(String from, String to, int position) {
+            this.from = from;
+            this.to = to;
+            pos = position;
+            cred = new JSONObject();
+            try {
+                cred.put("from", from);
+                cred.put("to", to);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        protected Boolean doInBackground(String... params) {
+            returnObj = null;
+            try {
+                HTTPRequestHandler http = new HTTPRequestHandler();
+                System.out.println("\nSending Http POST request to: " + params[0]);
+                try {
+                    returnObj = http.getJSONFromUrl((String) params[0], cred);
+                    System.out.println("JSON Object: " + returnObj.toString());
+                    return true;
+                } catch (Exception e) {
+                    returnObj = new JSONObject("{}");
+                    e.printStackTrace();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return false;
+        }
+
+        @Override
+        protected void onPostExecute(final Boolean success) {
+            mGetMessageTask = null;
+
+            if (success) {
+                FragmentManager fragmentManager = getSupportFragmentManager();
+                PlaceholderFragment placeholderFragment = PlaceholderFragment.newInstance(pos + 1, from);
+
+                fragmentManager.beginTransaction()
+                        .replace(R.id.content_frame, placeholderFragment)
+                        .commit();
+
+                try {
+                    JSONArray communications = returnObj.getJSONArray("communication");
+                    for (int i = 0; i < communications.length(); i++) {
+                        try {
+                            if(communications.get(i) instanceof JSONObject) {
+                                System.out.println(((JSONObject)communications.get(i)).getString("data"));
+                                placeholderFragment.addText(((JSONObject)communications.get(i)).getString("data"));
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                System.out.println("onPostExecute of MessageGetTask failed");
+            }
+        }
+
+        @Override
+        protected void onCancelled() {
+            mGetMessageTask = null;
         }
     }
 }
