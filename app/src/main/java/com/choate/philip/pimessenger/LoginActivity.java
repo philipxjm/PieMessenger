@@ -29,6 +29,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -53,6 +54,8 @@ public class LoginActivity extends Activity {
     private View mLoginFormView;
     private Button mSignInButton;
     private Button mRegisterButton;
+    private UserGetTask mGetTask;
+    public String userName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -245,6 +248,7 @@ public class LoginActivity extends Activity {
         JSONObject cred = new JSONObject();
 
         UserLoginTask(String user, String password) {
+            userName = user;
             cred = new JSONObject();
             try {
                 cred.put("name", user);
@@ -288,12 +292,10 @@ public class LoginActivity extends Activity {
         @Override
         protected void onPostExecute(final Boolean success) {
             mAuthTask = null;
-            showProgress(false);
 
             if (success) {
-                //finish();
-                Intent intent = new Intent(getApplicationContext(), ChatActivity.class);
-                startActivity(intent);
+                mGetTask = new UserGetTask();
+                mGetTask.execute("http://piemessengerbackend.herokuapp.com/users");
 
             } else {
                 mPasswordView.setError(getString(R.string.error_incorrect_password));
@@ -376,6 +378,47 @@ public class LoginActivity extends Activity {
         protected void onCancelled() {
             mAuthTask = null;
             showProgress(false);
+        }
+    }
+
+    public class UserGetTask extends AsyncTask<String, Void, Boolean> {
+
+        JSONArray returnObj;
+        UserGetTask() {
+        }
+
+        @Override
+        protected Boolean doInBackground(String... params) {
+            returnObj = null;
+            try {
+                HTTPRequestHandler http = new HTTPRequestHandler();
+                System.out.println("\nSending Http GET request to: " + params[0]);
+                try {
+                    returnObj = http.getJSONArrayFromURL((String) params[0]);
+                    System.out.println("JSON Object: " + returnObj.toString());
+                    return true;
+                } catch (Exception e) {
+                    returnObj = new JSONArray("[]");
+                    e.printStackTrace();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return false;
+        }
+
+        @Override
+        protected void onPostExecute(final Boolean success) {
+            showProgress(false);
+            Intent intent = new Intent(getApplicationContext(), ChatActivity.class);
+            intent.putExtra("USERDATA", returnObj.toString());
+            intent.putExtra("USERNAME", userName);
+            startActivity(intent);
+            mGetTask = null;
+        }
+
+        @Override
+        protected void onCancelled() {
         }
     }
 }

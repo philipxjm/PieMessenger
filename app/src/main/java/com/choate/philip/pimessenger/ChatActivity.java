@@ -1,6 +1,7 @@
 package com.choate.philip.pimessenger;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.ActionBar;
 import android.support.v4.app.Fragment;
@@ -20,7 +21,11 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.ArrayList;
 
 public class ChatActivity extends AppCompatActivity
         implements NavigationDrawerFragment.NavigationDrawerCallbacks {
@@ -34,7 +39,8 @@ public class ChatActivity extends AppCompatActivity
      * Used to store the last screen title. For use in {@link #restoreActionBar()}.
      */
     private CharSequence mTitle;
-
+    public static String userData;
+    public static String userName;
 
     //private Button mSendButton;
     //private EditText mMessageHistory;
@@ -42,9 +48,17 @@ public class ChatActivity extends AppCompatActivity
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        //System.out.println("activity oncreate");
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_chat);
+        Intent intent = getIntent();
+        System.out.println(intent.getStringExtra("USERDATA"));
+        userData = intent.getStringExtra("USERDATA");
+        userName = intent.getStringExtra("USERNAME");
 
+
+
+        setContentView(R.layout.activity_chat);
+        //getSupportFragmentManager().findFragmentById(R.id.navigation_drawer).setArguments(bundle);
         mNavigationDrawerFragment = (NavigationDrawerFragment)
                 getSupportFragmentManager().findFragmentById(R.id.navigation_drawer);
         mTitle = getTitle();
@@ -53,6 +67,8 @@ public class ChatActivity extends AppCompatActivity
         mNavigationDrawerFragment.setUp(
                 R.id.navigation_drawer,
                 (DrawerLayout) findViewById(R.id.drawer_layout));
+
+
 
 
 
@@ -71,17 +87,7 @@ public class ChatActivity extends AppCompatActivity
     }
 
     public void onSectionAttached(int number) {
-        switch (number) {
-            case 1:
-                mTitle = getString(R.string.title_section1);
-                break;
-            case 2:
-                mTitle = getString(R.string.title_section2);
-                break;
-            case 3:
-                mTitle = getString(R.string.title_section3);
-                break;
-        }
+        mTitle = mNavigationDrawerFragment.users.get(number - 1);
     }
 
     public void restoreActionBar() {
@@ -120,14 +126,8 @@ public class ChatActivity extends AppCompatActivity
         return super.onOptionsItemSelected(item);
     }
 
-    /**
-     * A placeholder fragment containing a simple view.
-     */
     public static class PlaceholderFragment extends Fragment {
-        /**
-         * The fragment argument representing the section number for this
-         * fragment.
-         */
+
         private static final String ARG_SECTION_NUMBER = "section_number";
 
         private Button mSendButton;
@@ -171,13 +171,10 @@ public class ChatActivity extends AppCompatActivity
         }
 
         @Override
-        public void onAttach(Activity activity) {
-            super.onAttach(activity);
-            ((ChatActivity) activity).onSectionAttached(
+        public void onAttach(Context context) {
+            super.onAttach(context);
+            ((ChatActivity) context).onSectionAttached(
                     getArguments().getInt(ARG_SECTION_NUMBER));
         }
-
-        }
-
-
+    }
 }
