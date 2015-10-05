@@ -298,6 +298,7 @@ public class LoginActivity extends Activity {
                 mGetTask.execute("http://piemessengerbackend.herokuapp.com/users");
 
             } else {
+                showProgress(false);
                 mPasswordView.setError(getString(R.string.error_incorrect_password));
                 mPasswordView.requestFocus();
             }
