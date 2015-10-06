@@ -59,6 +59,7 @@ public class ChatActivity extends AppCompatActivity
     public static String userData;
     public static String userName;
     public static String userTo;
+    public static int position;
     private ArrayList<String> users;
 
     //private Button mSendButton;
@@ -80,7 +81,7 @@ public class ChatActivity extends AppCompatActivity
         //getSupportFragmentManager().findFragmentById(R.id.navigation_drawer).setArguments(bundle);
         mNavigationDrawerFragment = (NavigationDrawerFragment)
                 getSupportFragmentManager().findFragmentById(R.id.navigation_drawer);
-        mTitle = getTitle();
+        mTitle = mNavigationDrawerFragment.users.get(0);
 
         // Set up the drawer.
         mNavigationDrawerFragment.setUp(
@@ -97,8 +98,9 @@ public class ChatActivity extends AppCompatActivity
     }
 
     @Override
-    public void onNavigationDrawerItemSelected(int position) {
+    public void onNavigationDrawerItemSelected(int pos) {
         // update the main content by replacing fragments
+        position = pos;
         System.out.println("chatactivity onNavigationDrawerItemSelected");
         try {
             JSONArray userData = new JSONArray(ChatActivity.userData);
@@ -121,6 +123,7 @@ public class ChatActivity extends AppCompatActivity
 
         Timer timer = new Timer(true);
         TimerTask updateChatTask = new UpdateChatTask(position);
+        updateChatTask.run();
         //timer.scheduleAtFixedRate(updateChatTask, 1000, 2000);
     }
 
@@ -167,7 +170,15 @@ public class ChatActivity extends AppCompatActivity
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.action_refresh) {
+            mGetMessageTask = new MessageGetTask(userName, userTo, position);
+            mGetMessageTask.execute("http://piemessengerbackend.herokuapp.com/messages/pull");
+            return true;
+        }
+
+        if (id == R.id.action_logout) {
+            Intent intent = new Intent(getApplicationContext(), LoginActivity.class);
+            startActivity(intent);
             return true;
         }
 
