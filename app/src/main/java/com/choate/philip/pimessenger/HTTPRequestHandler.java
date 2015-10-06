@@ -1,5 +1,4 @@
 package com.choate.philip.pimessenger;
-import android.os.AsyncTask;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -22,8 +21,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.util.Log;
-
-import javax.net.ssl.HttpsURLConnection;
 /**
  * Created by Philip on 9/28/2015.
  */
@@ -54,6 +51,7 @@ public class HTTPRequestHandler {
             e.printStackTrace();
         }
 
+        // parse the response into JSONArray
         try {
 
             BufferedReader reader = new BufferedReader(new InputStreamReader(is, "iso-8859-1"), 8);
@@ -70,14 +68,13 @@ public class HTTPRequestHandler {
         }
 
         System.out.println("JSON String: " + json);
-        // try parse the string to a JSON object
         try {
             jArray = new JSONArray(json);
         } catch (JSONException e) {
             Log.e(TAG, "Error parsing data " + e.toString());
         }
 
-        // return JSON String
+        // return JSONArray
         return jArray;
     }
 
@@ -108,6 +105,7 @@ public class HTTPRequestHandler {
             e.printStackTrace();
         }
 
+        // parse the response into JSONObject
         try {
 
             BufferedReader reader = new BufferedReader(new InputStreamReader(is, "iso-8859-1"), 8);
@@ -124,14 +122,13 @@ public class HTTPRequestHandler {
         }
 
         System.out.println("JSON String: " + json);
-        // try parse the string to a JSON object
         try {
             jObj = new JSONObject(json);
         } catch (JSONException e) {
             Log.e(TAG, "Error parsing data " + e.toString());
         }
 
-        // return JSON String
+        // return JSONObject
         return jObj;
     }
 }

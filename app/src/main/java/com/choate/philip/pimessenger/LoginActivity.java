@@ -37,13 +37,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * A login screen that offers login via email/password.
- */
 public class LoginActivity extends Activity {
-    /**
-     * Keep track of the login task to ensure we can cancel it if requested.
-     */
     private UserLoginTask mAuthTask = null;
     private UserRegisterTask mRegisterTask = null;
 
@@ -58,7 +52,7 @@ public class LoginActivity extends Activity {
     public String userName;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState) { //Sets up all the UI bits
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
@@ -98,7 +92,7 @@ public class LoginActivity extends Activity {
 
     }
 
-    private void attemptRegister() {
+    private void attemptRegister() { //Take the inputed information, and run it through AsyncTask
         // Reset errors.
         mUserView.setError(null);
         mPasswordView.setError(null);
@@ -135,6 +129,7 @@ public class LoginActivity extends Activity {
         } else {
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
+            // This only runs if all the input info is right
             showProgress(true);
             mRegisterTask = new UserRegisterTask(user, password);
             mRegisterTask.execute("http://piemessengerbackend.herokuapp.com/users/register");
@@ -147,7 +142,7 @@ public class LoginActivity extends Activity {
      * If there are form errors (invalid email, missing fields, etc.), the
      * errors are presented and no actual login attempt is made.
      */
-    public void attemptLogin() {
+    public void attemptLogin() { //Take input information and run through async task
         if (mAuthTask != null) {
             return;
         }
@@ -240,10 +235,8 @@ public class LoginActivity extends Activity {
             mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
         }
     }
-    /**
-     * Represents an asynchronous login/registration task used to authenticate
-     * the user.
-     */
+
+    // AsyncTask that does the log in
     public class UserLoginTask extends AsyncTask<String, Void, Boolean> {
         JSONObject cred = new JSONObject();
 

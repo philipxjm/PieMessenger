@@ -1,20 +1,15 @@
 package com.choate.philip.pimessenger;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.content.Intent;
 import android.database.DataSetObserver;
-import android.graphics.Typeface;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.ActionBar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.content.Context;
-import android.os.Build;
 import android.os.Bundle;
-import android.text.method.ScrollingMovementMethod;
-import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -27,17 +22,13 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
-import android.widget.Scroller;
 import android.widget.TextView;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -45,29 +36,18 @@ import java.util.TimerTask;
 public class ChatActivity extends AppCompatActivity
         implements NavigationDrawerFragment.NavigationDrawerCallbacks {
 
-    /**
-     * Fragment managing the behaviors, interactions and presentation of the navigation drawer.
-     */
     private NavigationDrawerFragment mNavigationDrawerFragment;
-
-    /**
-     * Used to store the last screen title. For use in {@link #restoreActionBar()}.
-     */
-    private CharSequence mTitle;
-    private MessageGetTask mGetMessageTask;
-    private MessagePostTask mPostMessageTask;
-    public static String userData;
-    public static String userName;
-    public static String userTo;
-    public static int position;
-    private ArrayList<String> users;
-
-    //private Button mSendButton;
-    //private EditText mMessageHistory;
-    //private EditText mMessageField;
+    private CharSequence mTitle; //Title displayed on the actionbar
+    private MessageGetTask mGetMessageTask; //AsyncTask for getting messages
+    private MessagePostTask mPostMessageTask; //AsyncTask for pushing messages
+    public static String userData; //JSONString of all the users
+    public static String userName; //Who the user is
+    public static String userTo; //Who the user is messaging
+    public static int position; //which user are we talking to
+    private ArrayList<String> users; //arraylist of all users
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState) { //setting up the drawerfragments and receiving the intents extras
         //System.out.println("activity oncreate");
         super.onCreate(savedInstanceState);
         Intent intent = getIntent();
@@ -98,14 +78,14 @@ public class ChatActivity extends AppCompatActivity
     }
 
     @Override
-    public void onNavigationDrawerItemSelected(int pos) {
+    public void onNavigationDrawerItemSelected(int pos) { //called when a drawer item is selected
         // update the main content by replacing fragments
         position = pos;
         System.out.println("chatactivity onNavigationDrawerItemSelected");
         try {
             JSONArray userData = new JSONArray(ChatActivity.userData);
             users = new ArrayList<>();
-            for (int i = 0; i < userData.length(); i++) {
+            for (int i = 0; i < userData.length(); i++) { //setting up the local users array
                 try {
                     if(userData.get(i) instanceof JSONObject) {
                         if(!(((JSONObject) userData.get(i)).getString("name").equals(ChatActivity.userName))){
@@ -121,6 +101,7 @@ public class ChatActivity extends AppCompatActivity
         }
         userTo = users.get(position);
 
+        //dysfunctional timer for updating
         Timer timer = new Timer(true);
         TimerTask updateChatTask = new UpdateChatTask(position);
         updateChatTask.run();
@@ -138,11 +119,11 @@ public class ChatActivity extends AppCompatActivity
         }
     }
 
-    public void onSectionAttached(int number) {
+    public void onSectionAttached(int number) { //called when a section of drawer is attached
         mTitle = mNavigationDrawerFragment.users.get(number - 1);
     }
 
-    public void restoreActionBar() {
+    public void restoreActionBar() { //sets up the actionbar
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayShowTitleEnabled(true);
         actionBar.setTitle(mTitle);
@@ -150,7 +131,7 @@ public class ChatActivity extends AppCompatActivity
 
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
+    public boolean onCreateOptionsMenu(Menu menu) { //set up the menu of the actionbar
         if (!mNavigationDrawerFragment.isDrawerOpen()) {
             // Only show items in the action bar relevant to this screen
             // if the drawer is not showing. Otherwise, let the drawer
@@ -163,7 +144,7 @@ public class ChatActivity extends AppCompatActivity
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
+    public boolean onOptionsItemSelected(MenuItem item) { //sets up the actions of the buttons in actionbar
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
@@ -186,7 +167,7 @@ public class ChatActivity extends AppCompatActivity
     }
 
     @SuppressLint("ValidFragment")
-    public class PlaceholderFragment extends Fragment {
+    public class PlaceholderFragment extends Fragment { //Chatfragment
 
         private static final String ARG_SECTION_NUMBER = "section_number";
 
@@ -197,11 +178,7 @@ public class ChatActivity extends AppCompatActivity
         private List<ChatMessage> chats;
         private ChatArrayAdapter chatArrayAdapter;
 
-        /**
-         * Returns a new instance of this fragment for the given section
-         * number.
-         */
-        public PlaceholderFragment (int sectionNumber, String userName) {
+        public PlaceholderFragment (int sectionNumber, String userName) { //constructor
             this.chats = new ArrayList<ChatMessage>();
             Bundle args = new Bundle();
             args.putInt(ARG_SECTION_NUMBER, sectionNumber);
@@ -210,7 +187,7 @@ public class ChatActivity extends AppCompatActivity
         }
 
         @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
+        public View onCreateView(LayoutInflater inflater, ViewGroup container, //sets up all the views
                                  Bundle savedInstanceState) {
             View rootView = inflater.inflate(R.layout.fragment_chat, container, false);
 
@@ -254,7 +231,7 @@ public class ChatActivity extends AppCompatActivity
             return rootView;
         }
 
-        public void sortChats() {
+        public void sortChats() { //sort the chat array based on time
             Collections.sort(chats, new Comparator<ChatMessage>() {
                 @Override
                 public int compare(ChatMessage lhs, ChatMessage rhs) {
@@ -276,12 +253,12 @@ public class ChatActivity extends AppCompatActivity
                     getArguments().getInt(ARG_SECTION_NUMBER));
         }
 
-        public void addChatMessage(boolean isTo, String text, String time) {
+        public void addChatMessage(boolean isTo, String text, String time) { //addes a chatmessage object to the chat array
             chats.add(new ChatMessage(isTo, text, time));
             sortChats();
         }
 
-        public boolean sendChatMessage() {
+        public boolean sendChatMessage() { //push and display a new chatmessage
             if(mTextBox.getText().toString() == null || mTextBox.getText().toString().equals("")){
                 return false;
             }
@@ -294,7 +271,7 @@ public class ChatActivity extends AppCompatActivity
         }
     }
 
-    public class MessageGetTask extends AsyncTask<String, Void, Boolean> {
+    public class MessageGetTask extends AsyncTask<String, Void, Boolean> { //retrieves chatmessage from cloud
         JSONObject cred1, cred2;
         JSONObject returnObj1, returnObj2, returnObj;
         String from, to;
@@ -342,7 +319,7 @@ public class ChatActivity extends AppCompatActivity
         }
 
         @Override
-        protected void onPostExecute(final Boolean success) {
+        protected void onPostExecute(final Boolean success) { //add retrieved chatmessages to chats array
             mGetMessageTask = null;
 
             if (success) {
@@ -395,7 +372,7 @@ public class ChatActivity extends AppCompatActivity
         }
     }
 
-    public class MessagePostTask extends AsyncTask<String, Void, Boolean> {
+    public class MessagePostTask extends AsyncTask<String, Void, Boolean> { //task for pushing new data onto cloud
         JSONObject jobj = new JSONObject();
 
         MessagePostTask(String from, String to, String message, String time) {
@@ -454,7 +431,7 @@ public class ChatActivity extends AppCompatActivity
         }
     }
 
-    class ChatArrayAdapter extends ArrayAdapter<ChatMessage> {
+    class ChatArrayAdapter extends ArrayAdapter<ChatMessage> { //adapter for the listview that displays all the chats
 
         private TextView chatText;
         private List<ChatMessage> chatMessageList = new ArrayList<ChatMessage>();
@@ -494,7 +471,7 @@ public class ChatActivity extends AppCompatActivity
         }
     }
 
-    class ChatMessage {
+    class ChatMessage { //ChatMessage
         public boolean to;
         public String message;
         public String time;
