@@ -1,7 +1,10 @@
 package com.choate.philip.pimessenger;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
+import android.database.DataSetObserver;
+import android.graphics.Typeface;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.ActionBar;
@@ -10,16 +13,21 @@ import android.support.v4.app.FragmentManager;
 import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.method.ScrollingMovementMethod;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.support.v4.widget.DrawerLayout;
+import android.widget.AbsListView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.Scroller;
 import android.widget.TextView;
 
 import org.json.JSONArray;
@@ -27,6 +35,12 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class ChatActivity extends AppCompatActivity
         implements NavigationDrawerFragment.NavigationDrawerCallbacks {
@@ -41,8 +55,10 @@ public class ChatActivity extends AppCompatActivity
      */
     private CharSequence mTitle;
     private MessageGetTask mGetMessageTask;
+    private MessagePostTask mPostMessageTask;
     public static String userData;
     public static String userName;
+    public static String userTo;
     private ArrayList<String> users;
 
     //private Button mSendButton;
@@ -83,6 +99,7 @@ public class ChatActivity extends AppCompatActivity
     @Override
     public void onNavigationDrawerItemSelected(int position) {
         // update the main content by replacing fragments
+        System.out.println("chatactivity onNavigationDrawerItemSelected");
         try {
             JSONArray userData = new JSONArray(ChatActivity.userData);
             users = new ArrayList<>();
@@ -100,8 +117,22 @@ public class ChatActivity extends AppCompatActivity
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        mGetMessageTask = new MessageGetTask(userName, users.get(position), position);
-        mGetMessageTask.execute("http://piemessengerbackend.herokuapp.com/messages/pull");
+        userTo = users.get(position);
+
+        Timer timer = new Timer(true);
+        TimerTask updateChatTask = new UpdateChatTask(position);
+        //timer.scheduleAtFixedRate(updateChatTask, 1000, 2000);
+    }
+
+    class UpdateChatTask extends TimerTask {
+        int position;
+        UpdateChatTask(int position) {
+            this.position = position;
+        }
+        public void run() {
+            mGetMessageTask = new MessageGetTask(userName, userTo, position);
+            mGetMessageTask.execute("http://piemessengerbackend.herokuapp.com/messages/pull");
+        }
     }
 
     public void onSectionAttached(int number) {
@@ -110,7 +141,6 @@ public class ChatActivity extends AppCompatActivity
 
     public void restoreActionBar() {
         ActionBar actionBar = getSupportActionBar();
-        actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_STANDARD);
         actionBar.setDisplayShowTitleEnabled(true);
         actionBar.setTitle(mTitle);
     }
@@ -144,28 +174,28 @@ public class ChatActivity extends AppCompatActivity
         return super.onOptionsItemSelected(item);
     }
 
-    public static class PlaceholderFragment extends Fragment {
+    @SuppressLint("ValidFragment")
+    public class PlaceholderFragment extends Fragment {
 
         private static final String ARG_SECTION_NUMBER = "section_number";
 
         private Button mSendButton;
-        private EditText mTextHistory;
+        private ListView mTextHistory;
         private EditText mTextBox;
+        private JSONArray chatArray;
+        private List<ChatMessage> chats;
+        private ChatArrayAdapter chatArrayAdapter;
 
         /**
          * Returns a new instance of this fragment for the given section
          * number.
          */
-        public static PlaceholderFragment newInstance(int sectionNumber, String userName) {
-            PlaceholderFragment fragment = new PlaceholderFragment();
+        public PlaceholderFragment (int sectionNumber, String userName) {
+            this.chats = new ArrayList<ChatMessage>();
             Bundle args = new Bundle();
             args.putInt(ARG_SECTION_NUMBER, sectionNumber);
             args.putString("USERNAME", userName);
-            fragment.setArguments(args);
-            return fragment;
-        }
-
-        public PlaceholderFragment() {
+            this.setArguments(args);
         }
 
         @Override
@@ -175,18 +205,57 @@ public class ChatActivity extends AppCompatActivity
 
             mSendButton = (Button) rootView.findViewById(R.id.button);
             mTextBox = (EditText) rootView.findViewById(R.id.messageBox);
-            mTextHistory = (EditText) rootView.findViewById(R.id.messageHistory);
+            mTextHistory = (ListView) rootView.findViewById(R.id.messageHistory);
 
+            sortChats();
+            chatArrayAdapter = new ChatArrayAdapter(getContext(), R.layout.right);
+            mTextHistory.setAdapter(chatArrayAdapter);
+
+            mTextBox.setOnKeyListener(new View.OnKeyListener() {
+                public boolean onKey(View v, int keyCode, KeyEvent event) {
+                    if ((event.getAction() == KeyEvent.ACTION_DOWN) && (keyCode == KeyEvent.KEYCODE_ENTER)) {
+                        return sendChatMessage();
+                    }
+                    return false;
+                }
+            });
             mSendButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    // TODO: Interface with database for message history
-                    mTextHistory.setText(mTextHistory.getText().toString() + "\n" + mTextBox.getText());
-                    mTextBox.setText("");
+                    sendChatMessage();
                 }
             });
 
+            mTextHistory.setTranscriptMode(AbsListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
+            mTextHistory.setAdapter(chatArrayAdapter);
+
+            chatArrayAdapter.registerDataSetObserver(new DataSetObserver() {
+                @Override
+                public void onChanged() {
+                    super.onChanged();
+                    mTextHistory.setSelection(chatArrayAdapter.getCount() - 1);
+                }
+            });
+            for(ChatMessage c : chats) {
+                chatArrayAdapter.add(c);
+            }
+
             return rootView;
+        }
+
+        public void sortChats() {
+            Collections.sort(chats, new Comparator<ChatMessage>() {
+                @Override
+                public int compare(ChatMessage lhs, ChatMessage rhs) {
+                    if (Long.valueOf(lhs.time) > Long.valueOf(rhs.time)) {
+                        return 1;
+                    } else if (Long.valueOf(lhs.time) < Long.valueOf(rhs.time)) {
+                        return -1;
+                    } else {
+                        return 0;
+                    }
+                }
+            });
         }
 
         @Override
@@ -196,19 +265,27 @@ public class ChatActivity extends AppCompatActivity
                     getArguments().getInt(ARG_SECTION_NUMBER));
         }
 
-        public void addText(String text) {
-            if(mTextHistory != null) {
-                System.out.println("mTextHistory is null");
-                mTextHistory.setText(mTextHistory.getText().toString() + "\n" + text);
-            } else {
-                //mTextHistory.setText(mTextHistory.getText().toString() + "\n" + text);
+        public void addChatMessage(boolean isTo, String text, String time) {
+            chats.add(new ChatMessage(isTo, text, time));
+            sortChats();
+        }
+
+        public boolean sendChatMessage() {
+            if(mTextBox.getText().toString() == null || mTextBox.getText().toString().equals("")){
+                return false;
             }
+            mPostMessageTask = new MessagePostTask(userName, userTo, mTextBox.getText().toString(), System.currentTimeMillis() + "");
+            mPostMessageTask.execute("http://piemessengerbackend.herokuapp.com/messages/push");
+            chatArrayAdapter.add(new ChatMessage(true, mTextBox.getText().toString(), System.currentTimeMillis() + ""));
+            mTextBox.setText("");
+            sortChats();
+            return true;
         }
     }
 
     public class MessageGetTask extends AsyncTask<String, Void, Boolean> {
-        JSONObject cred = new JSONObject();
-        JSONObject returnObj;
+        JSONObject cred1, cred2;
+        JSONObject returnObj1, returnObj2, returnObj;
         String from, to;
         int pos;
 
@@ -216,10 +293,13 @@ public class ChatActivity extends AppCompatActivity
             this.from = from;
             this.to = to;
             pos = position;
-            cred = new JSONObject();
+            cred1 = new JSONObject();
+            cred2 = new JSONObject();
             try {
-                cred.put("from", from);
-                cred.put("to", to);
+                cred1.put("from", from);
+                cred1.put("to", to);
+                cred2.put("from", to);
+                cred2.put("to", from);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -227,16 +307,21 @@ public class ChatActivity extends AppCompatActivity
 
         @Override
         protected Boolean doInBackground(String... params) {
-            returnObj = null;
+            returnObj1 = null;
+            returnObj2 = null;
             try {
                 HTTPRequestHandler http = new HTTPRequestHandler();
                 System.out.println("\nSending Http POST request to: " + params[0]);
                 try {
-                    returnObj = http.getJSONFromUrl((String) params[0], cred);
-                    System.out.println("JSON Object: " + returnObj.toString());
+                    returnObj1 = http.getJSONFromUrl((String) params[0], cred1);
+                    returnObj2 = http.getJSONFromUrl((String) params[0], cred2);
+
+                    System.out.println("JSON Object1: " + returnObj1.toString());
+                    System.out.println("JSON Object2: " + returnObj2.toString());
                     return true;
                 } catch (Exception e) {
-                    returnObj = new JSONObject("{}");
+                    returnObj1 = new JSONObject("{}");
+                    returnObj2 = new JSONObject("{}");
                     e.printStackTrace();
                 }
             } catch (Exception e) {
@@ -251,19 +336,35 @@ public class ChatActivity extends AppCompatActivity
 
             if (success) {
                 FragmentManager fragmentManager = getSupportFragmentManager();
-                PlaceholderFragment placeholderFragment = PlaceholderFragment.newInstance(pos + 1, from);
+                PlaceholderFragment placeholderFragment = new PlaceholderFragment(pos + 1, from);
 
                 fragmentManager.beginTransaction()
                         .replace(R.id.content_frame, placeholderFragment)
                         .commit();
 
                 try {
-                    JSONArray communications = returnObj.getJSONArray("communication");
-                    for (int i = 0; i < communications.length(); i++) {
+                    JSONArray communications1 = returnObj1.getJSONArray("communication");
+                    for (int i = 0; i < communications1.length(); i++) {
                         try {
-                            if(communications.get(i) instanceof JSONObject) {
-                                System.out.println(((JSONObject)communications.get(i)).getString("data"));
-                                placeholderFragment.addText(((JSONObject)communications.get(i)).getString("data"));
+                            if(communications1.get(i) instanceof JSONObject) {
+                                //System.out.println(((JSONObject)communications1.get(i)).getString("data"));
+                                placeholderFragment.addChatMessage(true, ((JSONObject) communications1.get(i)).getString("data"), ((JSONObject) communications1.get(i)).getString("time"));
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+                try {
+                    JSONArray communications2 = returnObj2.getJSONArray("communication");
+                    for (int i = 0; i < communications2.length(); i++) {
+                        try {
+                            if(communications2.get(i) instanceof JSONObject) {
+                                //System.out.println(((JSONObject) communications2.get(i)).getString("data"));
+                                placeholderFragment.addChatMessage(false, ((JSONObject) communications2.get(i)).getString("data"), ((JSONObject) communications2.get(i)).getString("time"));
                             }
                         } catch (JSONException e) {
                             e.printStackTrace();
@@ -280,6 +381,118 @@ public class ChatActivity extends AppCompatActivity
         @Override
         protected void onCancelled() {
             mGetMessageTask = null;
+        }
+    }
+
+    public class MessagePostTask extends AsyncTask<String, Void, Boolean> {
+        JSONObject jobj = new JSONObject();
+
+        MessagePostTask(String from, String to, String message, String time) {
+            jobj = new JSONObject();
+            try {
+                jobj.put("from", from);
+                jobj.put("to", to);
+                JSONObject newCommunication = new JSONObject();
+                newCommunication.put("time", time);
+                newCommunication.put("data", message);
+                jobj.put("newCommunication", newCommunication);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        protected Boolean doInBackground(String... params) {
+            JSONObject returnObj = null;
+            try {
+                HTTPRequestHandler http = new HTTPRequestHandler();
+                System.out.println("\nSending Http POST request to: " + params[0]);
+                try {
+                    returnObj = http.getJSONFromUrl((String) params[0], jobj);
+                } catch (Exception e) {
+                    returnObj = new JSONObject("{\"status\" : \"false\"}");
+                    e.printStackTrace();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                if(returnObj != null){
+                    return returnObj.getBoolean("status");
+                } else {
+                    return false;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(final Boolean success) {
+
+            if (success) {
+                System.out.println("success pushing chat");
+            } else {
+                System.out.println("failure pushing chat");
+            }
+        }
+
+        @Override
+        protected void onCancelled() {
+        }
+    }
+
+    class ChatArrayAdapter extends ArrayAdapter<ChatMessage> {
+
+        private TextView chatText;
+        private List<ChatMessage> chatMessageList = new ArrayList<ChatMessage>();
+        private Context context;
+
+        @Override
+        public void add(ChatMessage object) {
+            chatMessageList.add(object);
+            super.add(object);
+        }
+
+        public ChatArrayAdapter(Context context, int textViewResourceId) {
+            super(context, textViewResourceId);
+            this.context = context;
+        }
+
+        public int getCount() {
+            return this.chatMessageList.size();
+        }
+
+        public ChatMessage getItem(int index) {
+            return this.chatMessageList.get(index);
+        }
+
+        public View getView(int position, View convertView, ViewGroup parent) {
+            ChatMessage chatMessageObj = getItem(position);
+            View row = convertView;
+            LayoutInflater inflater = (LayoutInflater) this.getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+            if (chatMessageObj.to) {
+                row = inflater.inflate(R.layout.right, parent, false);
+            } else {
+                row = inflater.inflate(R.layout.left, parent, false);
+            }
+            chatText = (TextView) row.findViewById(R.id.msg);
+            chatText.setText(chatMessageObj.message);
+            return row;
+        }
+    }
+
+    class ChatMessage {
+        public boolean to;
+        public String message;
+        public String time;
+
+        public ChatMessage(boolean left, String message, String time) {
+            super();
+            this.time = time;
+            this.to = left;
+            this.message = message;
         }
     }
 }
