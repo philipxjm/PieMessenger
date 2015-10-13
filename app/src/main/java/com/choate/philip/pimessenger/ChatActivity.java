@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.database.DataSetObserver;
 import android.os.AsyncTask;
 import android.os.Handler;
+import android.os.Looper;
+import android.os.StrictMode;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.ActionBar;
 import android.support.v4.app.Fragment;
@@ -50,6 +52,7 @@ public class ChatActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) { //setting up the drawerfragments and receiving the intents extras
         //System.out.println("activity oncreate");
+        StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().detectDiskReads().detectDiskWrites().penaltyLog().build());
         super.onCreate(savedInstanceState);
         Intent intent = getIntent();
         System.out.println(intent.getStringExtra("USERDATA"));
@@ -163,6 +166,14 @@ public class ChatActivity extends AppCompatActivity
         private JSONArray chatArray;
         private List<ChatMessage> chats;
         private ChatArrayAdapter chatArrayAdapter;
+        PlaceholderFragment placeholderFragment;
+        Timer timer = new Timer();
+        TimerTask task = new TimerTask() {
+            @Override
+            public void run() {
+
+            }
+        };
 
         public PlaceholderFragment (int sectionNumber, String userName) { //constructor
             this.chats = new ArrayList<ChatMessage>();
@@ -170,6 +181,7 @@ public class ChatActivity extends AppCompatActivity
             args.putInt(ARG_SECTION_NUMBER, sectionNumber);
             args.putString("USERNAME", userName);
             this.setArguments(args);
+            this.placeholderFragment = this;
         }
 
         @Override
@@ -215,14 +227,82 @@ public class ChatActivity extends AppCompatActivity
             }
 
             //dysfunctional timer for updating
-            new Handler().postDelayed(new Runnable() {
+            task.cancel();
+            task = new TimerTask() {
+                JSONObject cred1, cred2;
+                JSONObject returnObj1, returnObj2, returnObj;
+                String from, to;
+                int pos;
                 @Override
                 public void run() {
-                    mGetMessageTask = new MessageGetTask(userName, userTo, position);
-                    mGetMessageTask.execute("http://piemessengerbackend.herokuapp.com/messages/pull");
-                    mTextBox.requestFocus();
+                    cred1 = new JSONObject();
+                    cred2 = new JSONObject();
+                    try {
+                        cred1.put("from", userName);
+                        cred1.put("to", userTo);
+                        cred2.put("from", userName);
+                        cred2.put("to", userTo);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
+                    returnObj1 = null;
+                    returnObj2 = null;
+                    try {
+                        HTTPRequestHandler http = new HTTPRequestHandler();
+                        System.out.println("\nSending Http POST request to: " + "http://piemessengerbackend.herokuapp.com/messages/pull");
+                        try {
+                            returnObj1 = http.getJSONFromUrl("http://piemessengerbackend.herokuapp.com/messages/pull", cred1);
+                            returnObj2 = http.getJSONFromUrl("http://piemessengerbackend.herokuapp.com/messages/pull", cred2);
+
+                            System.out.println("JSON Object1: " + returnObj1.toString());
+                            System.out.println("JSON Object2: " + returnObj2.toString());
+                        } catch (Exception e) {
+                            returnObj1 = new JSONObject("{}");
+                            returnObj2 = new JSONObject("{}");
+                            e.printStackTrace();
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    try {
+                        JSONArray communications1 = returnObj1.getJSONArray("communication");
+                        for (int i = 0; i < communications1.length(); i++) {
+                            try {
+                                if (communications1.get(i) instanceof JSONObject) {
+                                    //System.out.println(((JSONObject)communications1.get(i)).getString("data"));
+                                    placeholderFragment.addChatMessage(true, ((JSONObject) communications1.get(i)).getString("data"), ((JSONObject) communications1.get(i)).getString("time"));
+                                }
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
+                    try {
+                        JSONArray communications2 = returnObj2.getJSONArray("communication");
+                        for (int i = 0; i < communications2.length(); i++) {
+                            try {
+                                if (communications2.get(i) instanceof JSONObject) {
+                                    //System.out.println(((JSONObject) communications2.get(i)).getString("data"));
+                                    placeholderFragment.addChatMessage(false, ((JSONObject) communications2.get(i)).getString("data"), ((JSONObject) communications2.get(i)).getString("time"));
+                                }
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
                 }
-            }, 1000);
+            };
+
+            timer.scheduleAtFixedRate(task, 0, 1000);
+
+
 
             return rootView;
         }
@@ -252,6 +332,13 @@ public class ChatActivity extends AppCompatActivity
                     }
                 }
             });
+        }
+
+        @Override
+        public void onPause(){
+            super.onPause();
+            timer.cancel();
+            timer.purge();
         }
 
         @Override
@@ -331,6 +418,7 @@ public class ChatActivity extends AppCompatActivity
             mGetMessageTask = null;
 
             if (success) {
+
                 FragmentManager fragmentManager = getSupportFragmentManager();
                 PlaceholderFragment placeholderFragment = new PlaceholderFragment(pos + 1, from);
 
