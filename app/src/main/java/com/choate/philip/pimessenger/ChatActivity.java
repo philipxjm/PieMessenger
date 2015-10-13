@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.database.DataSetObserver;
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.ActionBar;
 import android.support.v4.app.Fragment;
@@ -100,23 +101,8 @@ public class ChatActivity extends AppCompatActivity
             e.printStackTrace();
         }
         userTo = users.get(position);
-
-        //dysfunctional timer for updating
-        Timer timer = new Timer(true);
-        TimerTask updateChatTask = new UpdateChatTask(position);
-        updateChatTask.run();
-        //timer.scheduleAtFixedRate(updateChatTask, 1000, 2000);
-    }
-
-    class UpdateChatTask extends TimerTask {
-        int position;
-        UpdateChatTask(int position) {
-            this.position = position;
-        }
-        public void run() {
-            mGetMessageTask = new MessageGetTask(userName, userTo, position);
-            mGetMessageTask.execute("http://piemessengerbackend.herokuapp.com/messages/pull");
-        }
+        mGetMessageTask = new MessageGetTask(userName, userTo, position);
+        mGetMessageTask.execute("http://piemessengerbackend.herokuapp.com/messages/pull");
     }
 
     public void onSectionAttached(int number) { //called when a section of drawer is attached
@@ -228,7 +214,29 @@ public class ChatActivity extends AppCompatActivity
                 chatArrayAdapter.add(c);
             }
 
+            //dysfunctional timer for updating
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    mGetMessageTask = new MessageGetTask(userName, userTo, position);
+                    mGetMessageTask.execute("http://piemessengerbackend.herokuapp.com/messages/pull");
+                    mTextBox.requestFocus();
+                }
+            }, 1000);
+
             return rootView;
+        }
+
+        class UpdateChatTask extends TimerTask {
+            int position;
+            UpdateChatTask(int position) {
+                this.position = position;
+            }
+            public void run() {
+                mGetMessageTask = new MessageGetTask(userName, userTo, position);
+                mGetMessageTask.execute("http://piemessengerbackend.herokuapp.com/messages/pull");
+                mTextBox.requestFocus();
+            }
         }
 
         public void sortChats() { //sort the chat array based on time
